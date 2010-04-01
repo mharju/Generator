@@ -2,6 +2,20 @@
 A script that uses the django template language in conjunction with pyyaml to
 generate content based on the data expressed in YAML format.
 
+File format
+===========
+    The input file format is a two-part YML document that contains two parts
+        1. The information used by the generator script
+        2. The information that is passed to the django template files
+        specified in the information in the first part.
+
+    Please consult the example for more information.
+
+Requirements
+============
+    - U{www.djangoproject.com}
+    - U{www.pyyaml.org}
+
 @author: Mikko Harju
 @version: 0.1
 """
@@ -36,7 +50,17 @@ the data is output to the current working directory""")
 
 def generate_inputs(input_files, output_directory):
     """Enumerates the list of input files given as parameter and produces the
-    output it specifies."""
+    output it specifies.
+
+    @type input_files: list
+    @param input_files: The input files that are processed. The input file is
+    expected to be a valid YAML document with the format specified in the
+    generator documentation, L{generator}.
+    @type output_directory: string
+    @param output_direstory: The output directory to be used to output the
+    result. The directories are created by the script, and they should not
+    exist beforehand.
+    """
     errors = []
     if output_directory is None:
         output_directory = os.getcwd()
