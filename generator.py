@@ -25,6 +25,7 @@ import sys
 import yaml
 import os
 import os.path
+import logging
 from optparse import OptionParser
 
 from django.template import Template, Context
@@ -95,9 +96,9 @@ def generate_inputs(input_files, *args, **kwargs):
     if kwargs['createdir'] is None:
         createdir = False 
 
-    print "Using %s as the output directory" % (output_directory,)
+    logging.debug("Using %s as the output directory" % (output_directory,))
     for input in input_files:
-        print "Processing input file %s" % (input,)
+        logging.debug("Processing input file %s" % (input,))
         try:
             stream = open(input)
             (info, data) = yaml.load_all(stream)
@@ -130,6 +131,8 @@ def main():
     # Initialize empty django environment
     from django.conf import settings
     settings.configure(DEBUG=True, TEMPLATE_DEBUG=True)
+    
+    logging.basicConfig(level=logging.DEBUG)
 
     parser = init_parser()
     (options, args) = parser.parse_args()
@@ -142,9 +145,9 @@ def main():
         generate_inputs(args, createdir=options.createdir, outputdir=options.outputdir)
     except GenerationException, e:
         for file, error in e.errors:
-            print "\tError processing %s: %s" % (file, ' '.join(str(error).strip('\t').split('\n')))
+            logging.debug("Error processing %s: %s" % (file, ' '.join(str(error).strip('\t').split('\n'))))
     except Exception, e:
-        print "Error: %s" % str(e)
+        logging.debug("Error: %s" % str(e))
     
 if __name__ == '__main__':
     main()  
