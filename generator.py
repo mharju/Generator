@@ -32,6 +32,10 @@ from datetime import datetime
 
 GENERATOR_DATA = { 'date': datetime.now() }
 
+class GenerationException(Exception):
+    def __init__(self, errors):
+        self.errors = errors
+    
 def init_parser():
     """Initializes the parser that is responsible for interpreting the input
     parameters for the application.
@@ -44,26 +48,52 @@ def init_parser():
     parser.add_option('-o', '--ouput-dir', action="store", type="string", dest="outputdir", help="""Output the
 data to the directory given as parameter. If the parameter is omitted,
 the data is output to the current working directory""")
-    
-    # We have no options for now :)
+    parser.add_option('-d', '--create-dir', action="store_true", dest="createdir",
+            help="""Creates the output directories if they do not exist.""")
     return parser
 
-def generate_inputs(input_files, output_directory):
-    """Enumerates the list of input files given as parameter and produces the
-    output it specifies.
+def render_template(template, data):
+    """Processes a single template file, providing it the data given in the
+    YAML file."""
+    try:
+        if not os.path.exists(template):
+                raise IOError("Specified template %s was not found!" % (template,))
 
-    @type input_files: list
-    @param input_files: The input files that are processed. The input file is
-    expected to be a valid YAML document with the format specified in the
-    generator documentation, L{generator}.
-    @type output_directory: string
-    @param output_direstory: The output directory to be used to output the
-    result. The directories are created by the script, and they should not
-    exist beforehand.
-    """
+        template_stream = open(template)
+        content = template_stream.read()
+
+        t = Template(content)
+        c = Context(data)
+        rendered_content = t.render(c)
+
+        return rendered_content 
+    finally:
+        try:
+            template_stream.close()
+        except: pass
+
+def write_to_file(rendered_content, out_file):
+    """Writes the given rendered content to the output file."""
+    try:
+        rendered_output = open(out_file, 'w')
+        rendered_output.write( rendered_content )
+    finally:
+        try:
+            rendered_output.close()
+        except: pass
+
+def generate_inputs(input_files, *args, **kwargs):
+    """Enumerates the list of input files given as parameter and produces the
+    output it specifies."""
     errors = []
-    if output_directory is None:
+    output_directory = kwargs['outputdir']
+    createdir = kwargs['createdir']
+    
+    if kwargs['outputdir'] is None:
         output_directory = os.getcwd()
+
+    if kwargs['createdir'] is None:
+        createdir = False 
 
     print "Using %s as the output directory" % (output_directory,)
     for input in input_files:
@@ -75,35 +105,24 @@ def generate_inputs(input_files, output_directory):
 
             for template in info['templates']:
                 try:
-                    if not os.path.exists(template):
-                        raise IOError("Specified template %s was not found!" % (template,))
-            
-                    template_stream = open(template)
-                    content = template_stream.read()
-
-                    t = Template(content)
-                    c = Context(data)
-                    rendered_content = t.render(c)
+                    rendered_content = render_template(template, data)
                     
                     dirpart, filepart = os.path.split(template)
                     out_file = os.path.join(output_directory, template)
+                    if createdir:
+                        os.makedirs( os.path.join(output_directory, dirpart) )
                     
-                    os.makedirs( os.path.join(output_directory, dirpart) )
-                    rendered_output = open(out_file, 'w')
-                    rendered_output.write( rendered_content )
-                finally:
-                    try:
-                        template_stream.close()
-                        rendered_output.close()
-                    except: pass
+                    write_to_file(rendered_content, out_file)
+                except Exception, e:
+                    errors.append((template,e))
 
         except Exception, e:
-            print "\tError: %s" % (' '.join(str(e).strip('\t').split('\n')))
-            errors.append(e)
+            errors.append((input, e))
         finally:
             stream.close()
 
-    return errors
+    if len(errors) > 0:
+        raise GenerationException(errors) 
 
 def main():
     """Main entry point for the script. This invokes the generator with the
@@ -120,9 +139,10 @@ def main():
         sys.exit(-1)
 
     try:
-        errors = generate_inputs(args, options.outputdir)
-        if len(errors) > 0:
-            print "There were %d errors." % (len(errors),)
+        generate_inputs(args, createdir=options.createdir, outputdir=options.outputdir)
+    except GenerationException, e:
+        for file, error in e.errors:
+            print "\tError processing %s: %s" % (file, ' '.join(str(error).strip('\t').split('\n')))
     except Exception, e:
         print "Error: %s" % str(e)
     
