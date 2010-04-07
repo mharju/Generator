@@ -41,7 +41,8 @@ class Generator(object):
     def __init__(self, *args, **kwargs):
         self.output_directory = kwargs['outputdir']
         self.createdir = kwargs['createdir']
-        
+        self.errors = []
+
         if kwargs['outputdir'] is None:
             self.output_directory = os.getcwd()
 
@@ -90,33 +91,34 @@ class Generator(object):
         
         self.write_to_file(rendered_content, out_file)
 
+    def generate_inputfile(self, input):
+        stream = open(input)
+        (info, data) = yaml.load_all(stream)
+        stream.close()
+
+        data.update(GENERATOR_DATA)
+
+        try:
+            for template in info['templates']:
+                self.generate_template(template, data)
+        except Exception, e:
+            self.errors.append((template, e))
         
     def generate(self, input_files):
         """Enumerates the list of input files given as parameter and produces the
         output it specifies."""
-        errors = []
+        self.errors = []
 
         logging.debug("Using %s as the output directory" % (self.output_directory,))
         for input in input_files:
             logging.debug("Processing input file %s" % (input,))
             try:
-                stream = open(input)
-                (info, data) = yaml.load_all(stream)
-                data.update(GENERATOR_DATA)
-
-                try:
-                    for template in info['templates']:
-                        self.generate_template(template, data)
-                except Exception, e:
-                    errors.append((template, e))
-
+                self.generate_inputfile(input)
             except Exception, e:
-                errors.append((input, e))
-            finally:
-                stream.close()
+                self.errors.append((input, e))
 
-        if len(errors) > 0:
-            raise GenerationException(errors) 
+        if len(self.errors) > 0:
+            raise GenerationException(self.errors) 
 
 def init_parser():
     """Initializes the parser that is responsible for interpreting the input
