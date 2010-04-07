@@ -37,6 +37,87 @@ class GenerationException(Exception):
     def __init__(self, errors):
         self.errors = errors
     
+class Generator(object):
+    def __init__(self, *args, **kwargs):
+        self.output_directory = kwargs['outputdir']
+        self.createdir = kwargs['createdir']
+        
+        if kwargs['outputdir'] is None:
+            self.output_directory = os.getcwd()
+
+        if kwargs['createdir'] is None:
+            self.createdir = False 
+    
+    def render_template(self, template, data):
+        """Processes a single template file, providing it the data given in the
+        YAML file."""
+        try:
+            if not os.path.exists(template):
+                    raise IOError("Specified template %s was not found!" % (template,))
+
+            template_stream = open(template)
+            content = template_stream.read()
+
+            t = Template(content)
+            c = Context(data)
+            rendered_content = t.render(c)
+
+            return rendered_content 
+        finally:
+            try:
+                template_stream.close()
+            except: pass
+
+    def write_to_file(self, rendered_content, out_file):
+        """Writes the given rendered content to the output file."""
+        try:
+            rendered_output = open(out_file, 'w')
+            rendered_output.write( rendered_content )
+        finally:
+            try:
+                rendered_output.close()
+            except: pass
+
+    def generate_template(self, template, data):
+        """Renders a single template and writes it to a file. A directory will
+        be created for the file, if the C{self.createdir} is set to C{True}"""
+        rendered_content = self.render_template(template, data)
+        
+        dirpart, filepart = os.path.split(template)
+        out_file = os.path.join(self.output_directory, template)
+        if self.createdir:
+            os.makedirs( os.path.join(self.output_directory, dirpart) )
+        
+        self.write_to_file(rendered_content, out_file)
+
+        
+    def generate(self, input_files):
+        """Enumerates the list of input files given as parameter and produces the
+        output it specifies."""
+        errors = []
+
+        logging.debug("Using %s as the output directory" % (self.output_directory,))
+        for input in input_files:
+            logging.debug("Processing input file %s" % (input,))
+            try:
+                stream = open(input)
+                (info, data) = yaml.load_all(stream)
+                data.update(GENERATOR_DATA)
+
+                try:
+                    for template in info['templates']:
+                        self.generate_template(template, data)
+                except Exception, e:
+                    errors.append((template, e))
+
+            except Exception, e:
+                errors.append((input, e))
+            finally:
+                stream.close()
+
+        if len(errors) > 0:
+            raise GenerationException(errors) 
+
 def init_parser():
     """Initializes the parser that is responsible for interpreting the input
     parameters for the application.
@@ -52,78 +133,6 @@ the data is output to the current working directory""")
     parser.add_option('-d', '--create-dir', action="store_true", dest="createdir",
             help="""Creates the output directories if they do not exist.""")
     return parser
-
-def render_template(template, data):
-    """Processes a single template file, providing it the data given in the
-    YAML file."""
-    try:
-        if not os.path.exists(template):
-                raise IOError("Specified template %s was not found!" % (template,))
-
-        template_stream = open(template)
-        content = template_stream.read()
-
-        t = Template(content)
-        c = Context(data)
-        rendered_content = t.render(c)
-
-        return rendered_content 
-    finally:
-        try:
-            template_stream.close()
-        except: pass
-
-def write_to_file(rendered_content, out_file):
-    """Writes the given rendered content to the output file."""
-    try:
-        rendered_output = open(out_file, 'w')
-        rendered_output.write( rendered_content )
-    finally:
-        try:
-            rendered_output.close()
-        except: pass
-
-def generate_inputs(input_files, *args, **kwargs):
-    """Enumerates the list of input files given as parameter and produces the
-    output it specifies."""
-    errors = []
-    output_directory = kwargs['outputdir']
-    createdir = kwargs['createdir']
-    
-    if kwargs['outputdir'] is None:
-        output_directory = os.getcwd()
-
-    if kwargs['createdir'] is None:
-        createdir = False 
-
-    logging.debug("Using %s as the output directory" % (output_directory,))
-    for input in input_files:
-        logging.debug("Processing input file %s" % (input,))
-        try:
-            stream = open(input)
-            (info, data) = yaml.load_all(stream)
-            data.update(GENERATOR_DATA)
-
-            for template in info['templates']:
-                try:
-                    rendered_content = render_template(template, data)
-                    
-                    dirpart, filepart = os.path.split(template)
-                    out_file = os.path.join(output_directory, template)
-                    if createdir:
-                        os.makedirs( os.path.join(output_directory, dirpart) )
-                    
-                    write_to_file(rendered_content, out_file)
-                except Exception, e:
-                    errors.append((template,e))
-
-        except Exception, e:
-            errors.append((input, e))
-        finally:
-            stream.close()
-
-    if len(errors) > 0:
-        raise GenerationException(errors) 
 
 def main():
     """Main entry point for the script. This invokes the generator with the
@@ -142,7 +151,8 @@ def main():
         sys.exit(-1)
 
     try:
-        generate_inputs(args, createdir=options.createdir, outputdir=options.outputdir)
+        Generator(createdir=options.createdir,
+                outputdir=options.outputdir).generate(args)
     except GenerationException, e:
         for file, error in e.errors:
             logging.debug("Error processing %s: %s" % (file, ' '.join(str(error).strip('\t').split('\n'))))
