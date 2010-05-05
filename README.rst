@@ -1,4 +1,9 @@
+========================================================================
 Generator - A YAML / Django Templates based text file generation tool.
+========================================================================
+
+Overview
+--------
 
 This project was initiated as I realized that I needed to have some kind of
 simple code generation tool to use with our projects. I know there are lots of
@@ -8,4 +13,18 @@ would be better to just use a few hours to make one myself.
 I try to add some documentation here as the things progress, this is just the
 first initial version that does something useful.
 
-If you have questions, please contact me!
+Usage
+-----
+
+To convert the given template file, run 
+
+``python generator.py [options] inputfiles``
+
+if you need help, type
+
+``python generator.py --help``
+
+Contact
+-------
+
+If you have questions, please contact me at ``mikko (at) taiste.fi``
