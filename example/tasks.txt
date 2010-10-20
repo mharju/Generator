@@ -5,6 +5,12 @@ Date: {{ date|date }}
 """
 
 My tasks are:
-    {% for value in tasks  %}
+{% for value in tasks  %}
     - {{ value }}
-    {% endfor %}
+{% endfor %}
+
+My items are:
+{% for name, description in items.items  %}
+    - {{ name }}: {{ description }}
+{% endfor %}
+

@@ -1,9 +1,13 @@
 # Generic information used by generator
 name: Task
-templates: [ example/tasks.txt ]
+templates: [ tasks.txt, python/tasks.py ]
 ---
 # The data that is passed to the Django Template system
 tasks:
   - Make a cup of Tea.
   - Give up all hobbies.
-  - Try to make something useful
+  - Try to make something useful.
+items:
+  pin: A Pin.
+  rollerball: A rollerball.
+  stick: A good old stick.

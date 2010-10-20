@@ -79,14 +79,14 @@ class Generator(object):
                 rendered_output.close()
             except: pass
 
-    def generate_template(self, template, data):
+    def generate_template(self, template_dir, template, data):
         """Renders a single template and writes it to a file. A directory will
         be created for the file, if the C{self.createdir} is set to C{True}"""
-        rendered_content = self.render_template(template, data)
+        rendered_content = self.render_template(os.path.join(template_dir, template), data)
         
         dirpart, filepart = os.path.split(template)
         out_file = os.path.join(self.output_directory, template)
-        if self.createdir:
+        if self.createdir and not os.path.exists(os.path.join(self.output_directory, dirpart)):
             os.makedirs( os.path.join(self.output_directory, dirpart) )
         
         self.write_to_file(rendered_content, out_file)
@@ -99,8 +99,9 @@ class Generator(object):
         data.update(GENERATOR_DATA)
 
         try:
+            dirpart, _ = os.path.split(input)
             for template in info['templates']:
-                self.generate_template(template, data)
+                self.generate_template(dirpart, template, data)
         except Exception, e:
             self.errors.append((template, e))
         
