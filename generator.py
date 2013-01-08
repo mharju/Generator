@@ -15,7 +15,7 @@ Requirements
 ============
     - U{www.djangoproject.com}
     - U{www.pyyaml.org}
-
+"
 @author: Mikko Harju
 @version: 0.1
 """
@@ -33,34 +33,37 @@ from datetime import datetime
 
 GENERATOR_DATA = { 'date': datetime.now() }
 
+
 class GenerationException(Exception):
     def __init__(self, errors):
         self.errors = errors
     
 class Generator(object):
     def __init__(self, *args, **kwargs):
-        self.output_directory = kwargs['outputdir']
         self.createdir = kwargs['createdir']
         self.errors = []
 
         if kwargs['outputdir'] is None:
-            self.output_directory = os.getcwd()
+            self.output_directory = os.path.join(os.getcwd(), 'build')
 
         if kwargs['createdir'] is None:
-            self.createdir = False 
+            self.createdir = True
     
+        self.output_directory = os.path.abspath(self.output_directory)
+
     def render_template(self, template, data):
         """Processes a single template file, providing it the data given in the
         YAML file."""
         try:
             if not os.path.exists(template):
-                    raise IOError("Specified template %s was not found!" % (template,))
+                  raise IOError("Specified template %s was not found!" % (template,))
 
             template_stream = open(template)
             content = template_stream.read()
 
             t = Template(content)
             c = Context(data)
+
             rendered_content = t.render(c)
 
             return rendered_content 
@@ -82,7 +85,7 @@ class Generator(object):
     def generate_template(self, template_dir, template, data):
         """Renders a single template and writes it to a file. A directory will
         be created for the file, if the C{self.createdir} is set to C{True}"""
-        rendered_content = self.render_template(os.path.join(template_dir, template), data)
+        rendered_content = self.render_template(os.path.join(os.path.abspath(template_dir), template), data)
         
         dirpart, filepart = os.path.split(template)
         out_file = os.path.join(self.output_directory, template)
@@ -130,7 +133,7 @@ def init_parser():
     """
     usage = "%prog [options] inputfiles"
     parser = OptionParser(usage=usage)
-    parser.add_option('-o', '--ouput-dir', action="store", type="string", dest="outputdir", help="""Output the
+    parser.add_option('-o', '--output-dir', action="store", type="string", dest="outputdir", help="""Output the
 data to the directory given as parameter. If the parameter is omitted,
 the data is output to the current working directory""")
     parser.add_option('-d', '--create-dir', action="store_true", dest="createdir",
@@ -142,8 +145,10 @@ def main():
     given parameters."""
     # Initialize empty django environment
     from django.conf import settings
-    settings.configure(DEBUG=True, TEMPLATE_DEBUG=True)
-    
+    settings.configure(DEBUG=True, TEMPLATE_DEBUG=True, INSTALLED_APPS = ['filters',])
+
+    import filters
+
     logging.basicConfig(level=logging.DEBUG)
 
     parser = init_parser()
