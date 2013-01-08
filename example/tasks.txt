@@ -16,6 +16,6 @@ My items are:
 
 Testing template filter
 {% for value in tasks  %}
-    - {{ value|foo }}
+    - {{ value|toupper }}
 {% endfor %}
 

@@ -1,10 +1,12 @@
 from django import template
-
-def foo(value):
-    """ Testing template filters. Replaces value with string 'foo' """
-    return "foo"
+from django.template.defaultfilters import stringfilter
 
 register = template.Library()
-register.filter('foo', foo)
+
+@register.filter(name='toupper')
+@stringfilter
+def toupper(value):
+    """ Testing template filters. Replaces value with uppercase value """
+    return value.upper()
 
 
