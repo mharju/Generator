@@ -34,6 +34,7 @@ from django.template import Template, Context
 from datetime import datetime
 
 GENERATOR_DATA = { 'date': datetime.now() }
+TEMPLATE_DIR = os.path.join(os.getcwd(), 'templates')
 
 
 class GenerationException(Exception):
@@ -57,10 +58,11 @@ class Generator(object):
         """Processes a single template file, providing it the data given in the
         YAML file."""
         try:
-            if not os.path.exists(template):
-                  raise IOError("Specified template %s was not found!" % (template,))
+            template_file_name = os.path.join(TEMPLATE_DIR, template)
+            if not os.path.exists(template_file_name):
+                  raise IOError("Specified template %s was not found!" % (template_file_name,))
 
-            template_stream = open(template)
+            template_stream = open(template_file_name)
             content = template_stream.read()
 
             t = Template(content)
@@ -87,7 +89,7 @@ class Generator(object):
     def generate_template(self, template_dir, template, data):
         """Renders a single template and writes it to a file. A directory will
         be created for the file, if the C{self.createdir} is set to C{True}"""
-        rendered_content = self.render_template(os.path.join(os.path.abspath(template_dir), template), data)
+        rendered_content = self.render_template(template, data)
         
         dirpart, filepart = os.path.split(template)
         out_file = os.path.join(self.output_directory, template)
