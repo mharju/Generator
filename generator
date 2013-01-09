@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 A script that uses the django template language in conjunction with pyyaml to
 generate content based on the data expressed in YAML format.
@@ -144,10 +146,15 @@ def main():
     """Main entry point for the script. This invokes the generator with the
     given parameters."""
     # Initialize empty django environment
-    from django.conf import settings
-    settings.configure(DEBUG=True, TEMPLATE_DEBUG=True, INSTALLED_APPS = ['filters',])
+    FILTERS_MODULE = 'filters'
+    if os.path.exists(os.path.join(os.getcwd(), 'filters/__init__.py')):
+        sys.path += [os.getcwd(),]
+        __import__(FILTERS_MODULE)
+        from django.template import builtins
+        builtins.append(sys.modules[FILTERS_MODULE].register)
 
-    import filters
+    from django.conf import settings
+    settings.configure(DEBUG=True, TEMPLATE_DEBUG=True)
 
     logging.basicConfig(level=logging.DEBUG)
 

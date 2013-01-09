@@ -13,18 +13,25 @@ would be better to just use a few hours to make one myself.
 Usage
 -----
 
+Run ``python setup.py install``
+
+Create a new directory to host your YAML files and templates.
+
+Optionally, create a directory ``filters`` to enable custom django filters to be applied. They are imported from the
+register you provide (as in Django in general). See the example for clarification.
+
 To convert the given template file, run 
 
-``python generator.py [options] inputfiles``
+``generator [options] inputfiles``
 
 if you need help, type
 
-``python generator.py --help``
+``generator --help``
 
 For a more verbose example, go check the example in the ``examples`` directory.
 to test it, just run
 
-``python generator.py -d -o test example/task.yml``
+``cd example; generator -o test task.yml``
 
 It creates a new directory test that contains the evaluated files.
 
