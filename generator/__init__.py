@@ -18,14 +18,9 @@ class Generator(object):
         self.createdir = kwargs['createdir']
         self.errors = []
 
-        if kwargs['outputdir'] is None:
-            self.output_directory = os.path.join(os.getcwd(), 'build')
-
-        if kwargs['createdir'] is None:
-            self.createdir = True
+        self.output_directory = os.path.abspath(kwargs.get('outputdir', os.path.join(os.getcwd(), 'build')))
+        self.createdir = kwargs.get('createdir', True)
     
-        self.output_directory = os.path.abspath(self.output_directory)
-
     def render_template(self, template, data):
         """Processes a single template file, providing it the data given in the
         YAML file."""
@@ -71,10 +66,7 @@ class Generator(object):
         self.write_to_file(rendered_content, out_file)
 
     def generate_inputfile(self, input):
-        stream = open(input)
-        (info, data) = yaml.load_all(stream)
-        stream.close()
-
+        (info, data) = yaml.load_all(input)
         data.update(GENERATOR_DATA)
 
         try:
